@@ -85,11 +85,15 @@ if(/Android/i.test(navigator.userAgent)){
   return;
 }
 
-// Desktop/iOS fallback: use the normal browser print dialog.
-const w=window.open('','_blank','width=400,height=700');
-if(!w){toast('Allow pop-ups to print');return}
-w.document.open();w.document.write(html);w.document.close();
-w.onload=()=>setTimeout(()=>{w.focus();w.print();setTimeout(()=>w.close(),1200)},250);
+// Desktop/iOS: print the receipt from the current page to avoid popup blockers.
+const receipt=document.getElementById('receipt');
+receipt.innerHTML=html;
+receipt.className='receipt '+(paper==='58mm'?'paper-58':'');
+receipt.style.display='block';
+setTimeout(()=>{
+  window.print();
+  setTimeout(()=>{receipt.innerHTML='';receipt.style.display='';},1000);
+},150);
 }
 function updateStats(){let today=new Date().toDateString(),a=bills().filter(b=>new Date(b.date).toDateString()===today),sum=k=>a.filter(b=>b.payment===k).reduce((s,b)=>s+b.total,0);document.getElementById('billCount').textContent=a.length;document.getElementById('salesTotal').textContent=money(a.reduce((s,b)=>s+b.total,0));document.getElementById('cashTotal').textContent=money(sum('Cash'));document.getElementById('digitalTotal').textContent=money(sum('UPI')+sum('Card'))}
 function showPrevious(){let a=bills();document.getElementById('modalTitle').textContent='Previous Bills';document.getElementById('modalBody').innerHTML=a.length?a.slice(0,50).map(b=>`<div class="billrow"><span><b>#${b.no}</b><br><small>${b.displayDate} · ${b.payment}</small></span><span><b>${money(b.total)}</b><br><button class="btn light" onclick='printReceipt(${JSON.stringify(b)})'>Reprint</button></span></div>`).join(''):'<p>No previous bills.</p>';document.getElementById('modal').classList.add('show')}
