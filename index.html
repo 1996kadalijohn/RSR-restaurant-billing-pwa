@@ -77,12 +77,7 @@ const html=`<!doctype html><html><head><meta name="viewport" content="width=devi
 if(/Android/i.test(navigator.userAgent)){
   const src='data:text/html;charset=utf-8,'+html;
   const printUrl='print://escpos.org/escpos/usb/print?srcTp=uri&srcObj=html&numCopies=1&src='+encodeURIComponent(src);
-  const a=document.createElement('a');
-  a.href=printUrl;
-  a.style.display='none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>a.remove(),1000);
+  window.location.href=printUrl;
   return;
 }
 
