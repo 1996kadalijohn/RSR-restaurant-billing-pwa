@@ -43,7 +43,7 @@ let cart={},payment='Cash',category='All';
 let cloudEnabled=false,cloudBills=[],cloudSyncing=false;
 const supa=window.RSR_SUPABASE||{};
 const cloudHeaders=()=>({apikey:supa.publishableKey,'Content-Type':'application/json'});
-const cloudUrl=path=>String(supa.url||'').replace(/\\/$/,'')+path;
+const cloudUrl=path=>String(supa.url||'').replace(/\/$/,'')+path;
 function cloudConfigured(){return !!(supa.url&&supa.publishableKey)}
 function normalizeCloudBill(b){return {id:b.id,no:Number(b.bill_no),date:b.bill_date,displayDate:new Date(b.bill_date).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}),items:Array.isArray(b.items)?b.items:[],total:Number(b.total),payment:b.payment}}
 async function syncCloudBills(){
