@@ -28,22 +28,42 @@ on public.bills for insert
 to anon
 with check (true);
 
-create sequence if not exists public.rsr_bill_no_seq start with 1001;
-
--- Keep the sequence at least at 1001. The function returns the next
--- number atomically, so multiple phones cannot receive the same bill number.
-create or replace function public.next_rsr_bill_no()
-returns bigint
+create or replace function public.create_rsr_bill(
+  p_items jsonb,
+  p_total numeric,
+  p_payment text,
+  p_bill_date timestamptz default now()
+)
+returns table (
+  id bigint,
+  bill_no bigint,
+  bill_date timestamptz,
+  items jsonb,
+  total numeric,
+  payment text,
+  created_at timestamptz
+)
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $
 declare
   n bigint;
 begin
-  n := nextval('public.rsr_bill_no_seq');
-  return n;
-end;
-$$;
+  if p_payment not in ('Cash','UPI','Card') then
+    raise exception 'Invalid payment method';
+  end if;
 
-grant execute on function public.next_rsr_bill_no() to anon;
+  -- Serialize bill-number allocation so six phones cannot receive the same number.
+  perform pg_advisory_xact_lock(923456789);
+  select coalesce(max(b.bill_no), 1000) + 1 into n from public.bills b;
+
+  return query
+  insert into public.bills (bill_no, bill_date, items, total, payment)
+  values (n, coalesce(p_bill_date, now()), p_items, p_total, p_payment)
+  returning bills.id, bills.bill_no, bills.bill_date, bills.items,
+            bills.total, bills.payment, bills.created_at;
+end;
+$;
+
+grant execute on function public.create_rsr_bill(jsonb,numeric,text,timestamptz) to anon;
