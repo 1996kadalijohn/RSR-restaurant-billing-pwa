@@ -72,7 +72,7 @@ ${b.items.map(i=>`<div class="r-item"><span>${i.name}</span><span class="qty">${
 <div class="r-payment">PAYMENT: ${b.payment.toUpperCase()}</div>
 <div class="r-footer">${receiptFooter}</div>
 <div class="r-center" style="margin-top:5px;font-size:9px">Powered by RSR Billing</div>`;
-window.print()
+requestAnimationFrame(()=>setTimeout(()=>window.print(),150))
 }
 function updateStats(){let today=new Date().toDateString(),a=bills().filter(b=>new Date(b.date).toDateString()===today),sum=k=>a.filter(b=>b.payment===k).reduce((s,b)=>s+b.total,0);document.getElementById('billCount').textContent=a.length;document.getElementById('salesTotal').textContent=money(a.reduce((s,b)=>s+b.total,0));document.getElementById('cashTotal').textContent=money(sum('Cash'));document.getElementById('digitalTotal').textContent=money(sum('UPI')+sum('Card'))}
 function showPrevious(){let a=bills();document.getElementById('modalTitle').textContent='Previous Bills';document.getElementById('modalBody').innerHTML=a.length?a.slice(0,50).map(b=>`<div class="billrow"><span><b>#${b.no}</b><br><small>${b.displayDate} · ${b.payment}</small></span><span><b>${money(b.total)}</b><br><button class="btn light" onclick='printReceipt(${JSON.stringify(b)})'>Reprint</button></span></div>`).join(''):'<p>No previous bills.</p>';document.getElementById('modal').classList.add('show')}
