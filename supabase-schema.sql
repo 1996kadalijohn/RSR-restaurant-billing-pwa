@@ -16,6 +16,8 @@ create index if not exists bills_bill_no_idx on public.bills (bill_no desc);
 
 alter table public.bills enable row level security;
 
+grant select on table public.bills to anon;
+
 drop policy if exists "public can read bills" on public.bills;
 create policy "public can read bills"
 on public.bills for select
