@@ -49,8 +49,8 @@ function normalizeCloudBill(b){return {id:b.id,no:Number(b.bill_no),date:b.bill_
 async function syncCloudBills(){
   if(!cloudConfigured()) return;
   try{
-    const r=await fetch(cloudUrl('/rest/v1/bills?select=id,bill_no,bill_date,items,total,payment&order=bill_no.desc&limit=500'),{headers:cloudHeaders()});
-    if(!r.ok) throw new Error('Cloud read failed');
+    const r=await fetch(cloudUrl('/rest/v1/bills?select=id,bill_no,bill_date,items,total,payment&order=bill_no.desc&limit=500'),{headers:cloudHeaders(),cache:'no-store'});
+    if(!r.ok){const msg=await r.text().catch(()=> ''); throw new Error('Cloud read failed ('+r.status+'): '+msg.slice(0,180))}
     cloudBills=(await r.json()).map(normalizeCloudBill); cloudEnabled=true;
     if(cloudBills.length) billNo=cloudBills[0].no+1;
     updateStats(); renderBill();
@@ -68,7 +68,7 @@ function change(name,d){cart[name]+=d;if(cart[name]<=0)delete cart[name];renderB
 function renderBill(){let names=Object.keys(cart);document.getElementById('billNo').textContent='Bill #'+billNo;document.getElementById('billDate').textContent=now();document.getElementById('billItems').innerHTML=names.length?names.map(n=>{let x=menu.find(m=>m[1]===n),q=cart[n];return `<div class="line"><div><b>${n}</b><br><small>${money(x[2])} × ${q} = ${money(x[2]*q)}</small></div><div class="qty"><button onclick="change('${n.replaceAll("'","\\'")}',-1)">−</button> <b>${q}</b> <button onclick="change('${n.replaceAll("'","\\'")}',1)">+</button></div></div>`}).join(''):'<div class="empty">Tap menu items to add them</div>';let total=names.reduce((s,n)=>s+menu.find(m=>m[1]===n)[2]*cart[n],0);document.getElementById('subtotal').textContent=money(total);document.getElementById('total').textContent=money(total);document.querySelectorAll('.pay button').forEach(b=>b.classList.toggle('active',b.dataset.pay===payment));let count=names.reduce((s,n)=>s+cart[n],0);document.getElementById('mobileCartCount').textContent=count+' item'+(count===1?'':'s');document.getElementById('mobileCartTotal').textContent=money(total)}
 function openCart(){document.querySelector('.layout>.panel:last-child').classList.add('cart-open');document.getElementById('cartBackdrop').classList.add('show');document.body.style.overflow='hidden'}function closeCart(){document.querySelector('.layout>.panel:last-child').classList.remove('cart-open');document.getElementById('cartBackdrop').classList.remove('show');document.body.style.overflow=''}function setPayment(p){payment=p;renderBill()}function newBill(){cart={};payment='Cash';billNo=cloudEnabled&&cloudBills.length?cloudBills[0].no+1:Number(localStorage.getItem('nextBill')||1001);renderBill()}
 function bills(){return cloudEnabled?cloudBills:JSON.parse(localStorage.getItem('bills')||'[]')}
-async function completeBill(){let names=Object.keys(cart);if(!names.length){toast('Add at least one item');return}if(cloudSyncing)return;if(cloudConfigured()&&!cloudEnabled){toast('Connecting to shared database...');await syncCloudBills();if(!cloudEnabled){toast('Shared database unavailable');return}}let total=names.reduce((s,n)=>s+menu.find(m=>m[1]===n)[2]*cart[n],0);let items=names.map(n=>({name:n,qty:cart[n],price:menu.find(m=>m[1]===n)[2]}));cloudSyncing=true;
+async function completeBill(){let names=Object.keys(cart);if(!names.length){toast('Add at least one item');return}if(cloudSyncing)return;if(cloudConfigured()&&!cloudEnabled){toast('Connecting to shared database...');await syncCloudBills();if(!cloudEnabled){toast('Shared database unavailable. Refresh and try again.');return}}let total=names.reduce((s,n)=>s+menu.find(m=>m[1]===n)[2]*cart[n],0);let items=names.map(n=>({name:n,qty:cart[n],price:menu.find(m=>m[1]===n)[2]}));cloudSyncing=true;
 try{
   let b;
   if(cloudEnabled&&cloudConfigured()){
