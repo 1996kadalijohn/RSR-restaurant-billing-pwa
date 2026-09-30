@@ -56,23 +56,22 @@ function closeReceiptSettings(){document.getElementById('receiptSettingsModal').
 function setPaper(p){receiptPaper=p;document.getElementById('paper58').classList.toggle('active',p==='58mm');document.getElementById('paper80').classList.toggle('active',p==='80mm')}
 function saveReceiptSettings(){receiptPaper=document.getElementById('paper58').classList.contains('active')?'58mm':'80mm';receiptFooter=(document.getElementById('receiptFooter').value||'Thank You! Visit Again').trim();localStorage.setItem('receiptPaper',receiptPaper);localStorage.setItem('receiptFooter',receiptFooter);closeReceiptSettings();toast('Receipt settings saved')}
 function printReceipt(b){
-let r=document.getElementById('receipt');
-r.className='receipt paper-'+receiptPaper.replace('mm','');
-r.innerHTML=`<div class="r-center r-title">${document.getElementById('restaurantName').textContent}</div>
-<div class="r-center r-meta">RESTAURANT BILL</div>
-<div class="r-rule"></div>
-<div>Bill No: <b>#${b.no}</b></div>
-<div>Date: ${b.displayDate}</div>
-<div class="r-rule"></div>
-<div class="r-head"><span>ITEM</span><span>QTY</span><span>AMT</span></div>
-<div class="r-rule"></div>
-${b.items.map(i=>`<div class="r-item"><span>${i.name}</span><span class="qty">${i.qty}</span><span class="amt">${money(i.qty*i.price)}</span></div><div style="font-size:9px">${money(i.price)} each</div>`).join('')}
-<div class="r-rule"></div>
-<div class="r-total"><span>TOTAL</span><span>${money(b.total)}</span></div>
-<div class="r-payment">PAYMENT: ${b.payment.toUpperCase()}</div>
-<div class="r-footer">${receiptFooter}</div>
-<div class="r-center" style="margin-top:5px;font-size:9px">Powered by RSR Billing</div>`;
-window.print()
+const title=document.getElementById('restaurantName').textContent;
+const paper=receiptPaper;
+const footer=receiptFooter;
+const items=b.items.map(i=>`<div class="r-item"><span>${i.name}</span><span class="qty">${i.qty}</span><span class="amt">${money(i.qty*i.price)}</span></div><div class="each">${money(i.price)} each</div>`).join('');
+const html=`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Receipt #${b.no}</title><style>
+@page{size:${paper} auto;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{width:${paper};font-family:"Courier New",monospace;font-size:11px;line-height:1.35;color:#000;padding:3mm 2.5mm}.center{text-align:center}.title{font-size:16px;font-weight:900}.meta{margin-top:3px}.rule{border-top:1px dashed #000;margin:6px 0}.head,.r-item{display:grid;grid-template-columns:1fr auto auto;column-gap:5px}.head{font-weight:900}.qty,.amt{text-align:right}.each{font-size:9px}.total{display:flex;justify-content:space-between;font-weight:900;font-size:14px}.payment{text-align:center;font-weight:800;margin-top:4px}.footer{text-align:center;margin-top:9px}.powered{text-align:center;margin-top:5px;font-size:9px}</style></head><body>
+<div class="center title">${title}</div><div class="center meta">RESTAURANT BILL</div><div class="rule"></div>
+<div>Bill No: <b>#${b.no}</b></div><div>Date: ${b.displayDate}</div><div class="rule"></div>
+<div class="head"><span>ITEM</span><span>QTY</span><span>AMT</span></div><div class="rule"></div>
+${items}<div class="rule"></div><div class="total"><span>TOTAL</span><span>${money(b.total)}</span></div>
+<div class="payment">PAYMENT: ${b.payment.toUpperCase()}</div><div class="footer">${footer}</div><div class="powered">Powered by RSR Billing</div>
+</body></html>`;
+const w=window.open('','_blank','width=400,height=700');
+if(!w){toast('Allow pop-ups to print');return}
+w.document.open();w.document.write(html);w.document.close();
+w.onload=()=>setTimeout(()=>{w.focus();w.print();setTimeout(()=>w.close(),1200)},250);
 }
 function updateStats(){let today=new Date().toDateString(),a=bills().filter(b=>new Date(b.date).toDateString()===today),sum=k=>a.filter(b=>b.payment===k).reduce((s,b)=>s+b.total,0);document.getElementById('billCount').textContent=a.length;document.getElementById('salesTotal').textContent=money(a.reduce((s,b)=>s+b.total,0));document.getElementById('cashTotal').textContent=money(sum('Cash'));document.getElementById('digitalTotal').textContent=money(sum('UPI')+sum('Card'))}
 function showPrevious(){let a=bills();document.getElementById('modalTitle').textContent='Previous Bills';document.getElementById('modalBody').innerHTML=a.length?a.slice(0,50).map(b=>`<div class="billrow"><span><b>#${b.no}</b><br><small>${b.displayDate} · ${b.payment}</small></span><span><b>${money(b.total)}</b><br><button class="btn light" onclick='printReceipt(${JSON.stringify(b)})'>Reprint</button></span></div>`).join(''):'<p>No previous bills.</p>';document.getElementById('modal').classList.add('show')}
